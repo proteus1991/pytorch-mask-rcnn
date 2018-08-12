@@ -67,8 +67,12 @@ class_names = ['BG', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
                'teddy bear', 'hair drier', 'toothbrush']
 
 # Load a random image from the images folder
-file_names = next(os.walk(IMAGE_DIR))[2]
-image = skimage.io.imread(os.path.join(IMAGE_DIR, random.choice(file_names)))
+
+# file_names = next(os.walk(IMAGE_DIR))[2]
+# image = skimage.io.imread(os.path.join(IMAGE_DIR, random.choice(file_names)))
+
+file_names = 'car.png'
+image = skimage.io.imread(os.path.join(IMAGE_DIR, file_names))
 
 # Run detection
 results = model.detect([image])
@@ -78,3 +82,16 @@ r = results[0]
 visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'],
                             class_names, r['scores'])
 plt.show()
+
+# Check which masks are for car category
+car_masks = []
+for i in range(len(r['class_ids'])):
+    if r['class_ids'][i] == 3:
+        car_masks.append(r['masks'][:, :, i])
+
+for i in range(len(car_masks)):
+    car_mask_plot = plt.imshow(car_masks[i])
+    plt.show()
+
+
+
