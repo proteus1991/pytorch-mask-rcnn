@@ -75,7 +75,7 @@ def apply_mask(image, mask, color, alpha=0.5):
     return image
 
 
-def display_instances(image, boxes, masks, class_ids, class_names,
+def display_instances(image, boxes, masks, class_ids, class_names, save_image,
                       scores=None, title="",
                       figsize=(16, 16), ax=None):
     """
@@ -83,6 +83,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
     masks: [height, width, num_instances]
     class_ids: [num_instances]
     class_names: list of class names of the dataset
+    save_image: provide the directory to save image
     scores: (optional) confidence scores for each box
     figsize: (optional) the size of the image.
     """
@@ -144,8 +145,9 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             verts = np.fliplr(verts) - 1
             p = Polygon(verts, facecolor="none", edgecolor=color)
             ax.add_patch(p)
-    ax.imshow(masked_image.astype(np.uint8))
-    plt.show()
+    fig = ax.imshow(masked_image.astype(np.uint8))
+    plt.savefig('{0}/MaskedImage/{1}'.format(save_image[0], save_image[1]))
+    plt.close()
     
 
 def draw_rois(image, rois, refined_rois, mask, class_ids, class_names, limit=10):

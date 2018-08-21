@@ -1,11 +1,13 @@
 import os
 import sys
+import time
 import random
 import math
 import numpy as np
 import skimage.io
 import matplotlib
 import matplotlib.pyplot as plt
+from PIL import Image
 
 import coco
 import utils
@@ -14,7 +16,7 @@ import visualize
 
 import torch
 
-
+load_start = time.time()
 # Root directory of the project
 ROOT_DIR = os.getcwd()
 
@@ -27,7 +29,7 @@ MODEL_DIR = os.path.join(ROOT_DIR, "logs")
 COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.pth")
 
 # Directory of images to run detection on
-IMAGE_DIR = os.path.join(ROOT_DIR, "images")
+IMAGE_DIR = os.path.join(ROOT_DIR, "CarWithGroundEvalImages")
 
 class InferenceConfig(coco.CocoConfig):
     # Set batch size to 1 since we'll be running inference on
@@ -36,6 +38,7 @@ class InferenceConfig(coco.CocoConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
 
+##########################################3
 config = InferenceConfig()
 config.display()
 
@@ -70,28 +73,61 @@ class_names = ['BG', 'person', 'bicycle', 'car', 'motorcycle', 'airplane',
 
 # file_names = next(os.walk(IMAGE_DIR))[2]
 # image = skimage.io.imread(os.path.join(IMAGE_DIR, random.choice(file_names)))
+load_time = time.time() - load_start
+print(load_time)
+start_time = time.time()
 
-file_names = 'car.png'
-image = skimage.io.imread(os.path.join(IMAGE_DIR, file_names))
+with open('{}/OriginalImages/list.txt'.format(IMAGE_DIR)) as f:
+    contents = f.readlines()
+    file_names = [i.strip() for i in contents]
 
-# Run detection
-results = model.detect([image])
+for i in range(len(file_names)):
+    image = skimage.io.imread(os.path.join(IMAGE_DIR, 'OriginalImages', file_names[i]))
 
-# Visualize results
-r = results[0]
-visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'],
-                            class_names, r['scores'])
-plt.show()
+    # Run detection
+    results = model.detect([image])
 
-# Check which masks are for car category
-car_masks = []
-for i in range(len(r['class_ids'])):
-    if r['class_ids'][i] == 3:
-        car_masks.append(r['masks'][:, :, i])
+    # Visualize results
+    r = results[0]
+    save_image = [IMAGE_DIR, file_names[i]]
+    visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, save_image, r['scores'])
 
-for i in range(len(car_masks)):
-    car_mask_plot = plt.imshow(car_masks[i])
-    plt.show()
 
+    # show the image
+    # plt.show()
+
+    # Check which masks are for car category
+    car_masks = []
+    for index in range(len(r['class_ids'])):
+        if r['class_ids'][index] == 3 or r['class_ids'][index] == 8:
+            car_masks.append(r['masks'][:, :, index])
+    if len(car_masks) == 1:
+        im = Image.fromarray((car_masks[0]*255.0).astype(np.uint8))
+        im.save('{0}/TrimapCreatedFromMaskRCNN/{1}'.format(IMAGE_DIR, file_names[i]))
+
+    else:
+        masks_size = []
+        for index in range(len(car_masks)):
+            masks_size.append(np.sum(car_masks[index]))
+
+        if not len(masks_size):
+            with open('{}/OriginalImages/blacklist.txt'.format(IMAGE_DIR)) as f:
+                black_contents = f.readlines()
+                black_file_names = [i.strip() for i in black_contents]
+            if file_names[i] not in black_file_names:
+                with open('{}/OriginalImages/blacklist.txt'.format(IMAGE_DIR), 'a') as f:
+                    # write the unfitted video names in the file, 'a' means append
+                    print(file_names[i], file=f)
+                    print(file_names[i])
+            continue
+
+        dominant_mask_location = masks_size.index(max(masks_size))
+        car_mask = car_masks[dominant_mask_location]
+        im = Image.fromarray((car_mask*255.0).astype(np.uint8))
+        im.save('{0}/TrimapCreatedFromMaskRCNN/{1}'.format(IMAGE_DIR, file_names[i]))
+
+
+elapsed_time = time.time() - start_time
+print(elapsed_time)
 
 
