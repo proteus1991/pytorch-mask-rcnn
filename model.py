@@ -25,6 +25,7 @@ import utils
 import visualize
 from nms.nms_wrapper import nms
 from roialign.roi_align.crop_and_resize import CropAndResizeFunction
+import my_exception as myexp
 
 
 ############################################################
@@ -779,6 +780,9 @@ def refine_detections(rois, probs, deltas, window, config):
 
     # Filter out background boxes
     keep_bool = class_ids>0
+    # if not keep_bool:
+    #     raise BaseException("keep_bool is false")
+    #     return
 
     # Filter out low confidence boxes
     if config.DETECTION_MIN_CONFIDENCE:
@@ -839,8 +843,12 @@ def detection_layer(config, rois, mrcnn_class, mrcnn_bbox, image_meta):
     _, _, window, _ = parse_image_meta(image_meta)
     window = window[0]
     detections = refine_detections(rois, mrcnn_class, mrcnn_bbox, window, config)
-
     return detections
+    # try:
+    #     detections = refine_detections(rois, mrcnn_class, mrcnn_bbox, window, config)
+    #     return detections
+    # except BaseException as var:
+    #     raise var
 
 
 ############################################################
@@ -1596,6 +1604,11 @@ class MaskRCNN(nn.Module):
 
         # Run object detection
         detections, mrcnn_mask = self.predict([molded_images, image_metas], mode='inference')
+        # try:
+        #     detections, mrcnn_mask = self.predict([molded_images, image_metas], mode='inference')
+        # except BaseException as var:
+        #     raise var
+
 
         # Convert to numpy
         detections = detections.data.cpu().numpy()
@@ -1670,8 +1683,8 @@ class MaskRCNN(nn.Module):
 
             # Detections
             # output is [batch, num_detections, (y1, x1, y2, x2, class_id, score)] in image coordinates
-            detections = detection_layer(self.config, rpn_rois, mrcnn_class, mrcnn_bbox, image_metas)
 
+            detections = detection_layer(self.config, rpn_rois, mrcnn_class, mrcnn_bbox, image_metas)
             # Convert boxes to normalized coordinates
             # TODO: let DetectionLayer return normalized coordinates to avoid
             #       unnecessary conversions
@@ -1692,6 +1705,30 @@ class MaskRCNN(nn.Module):
             mrcnn_mask = mrcnn_mask.unsqueeze(0)
 
             return [detections, mrcnn_mask]
+            # try:
+            #     detections = detection_layer(self.config, rpn_rois, mrcnn_class, mrcnn_bbox, image_metas)
+            #     # Convert boxes to normalized coordinates
+            #     # TODO: let DetectionLayer return normalized coordinates to avoid
+            #     #       unnecessary conversions
+            #     h, w = self.config.IMAGE_SHAPE[:2]
+            #     scale = Variable(torch.from_numpy(np.array([h, w, h, w])).float(), requires_grad=False)
+            #     if self.config.GPU_COUNT:
+            #         scale = scale.cuda()
+            #     detection_boxes = detections[:, :4] / scale
+            #
+            #     # Add back batch dimension
+            #     detection_boxes = detection_boxes.unsqueeze(0)
+            #
+            #     # Create masks for detections
+            #     mrcnn_mask = self.mask(mrcnn_feature_maps, detection_boxes)
+            #
+            #     # Add back batch dimension
+            #     detections = detections.unsqueeze(0)
+            #     mrcnn_mask = mrcnn_mask.unsqueeze(0)
+            #
+            #     return [detections, mrcnn_mask]
+            # except BaseException as var:
+            #     raise var
 
         elif mode == 'training':
 

@@ -7,3 +7,4 @@ logs/
 pycocotools
 *_ext*
 CarWithGroundEvalImages/
+HazeImages/
